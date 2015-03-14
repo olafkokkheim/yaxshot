@@ -1,0 +1,85 @@
+#!/bin/bash
+###########> License (CopyRight) <###########
+#The base of this script was written and founded by sebelius.
+#Please respect me by not deleting this comment in any modified version.
+#Feel free to add your own name and contributions after me, chronologically to respect
+#everyone. If you contributed last, you'll appear bottom on the list.
+
+# I don wanna pick among a collection of things others have done
+
+# Graphical yad front-end to xwd, 'yet another xwd shot (yaxshot)'
+# Dependencies: sed, yad, xwd, xwdtopnm, pnmto(jpeg|png|tiff), date
+
+# TODO
+# Save to unique filename when directory specified    [x]
+# Organize the options, no border, with border...     [x]
+# Detect manually insertion of extension              [x]
+# Sleep X seconds before shooting                     [x]
+# 
+# Warn about overwrite                                [o] # only for manual names
+
+#####>xwd
+# By default select window and screenshot only the contents of that window, not includes overlapping.
+# -frame and -nobdrs means include and not-include respectively the wm border of the selected window.
+# (other borders are still included)
+# -screen will include overlapping windows, it copies right from the root window so other things are included
+# -root equals -screen but automatically selects the root window as the source
+
+#-root
+#-screen
+#-window # must be removed if specified as it's done by default without an argument
+#-frame  # these are options
+#-nobdrs
+
+
+#def_fmt=png
+def_dir="$HOME/Images"
+def_yad='--title=yaxShot --image=gnome-screenshot --center --text-align=center --fixed --dialog-sep'
+
+# BUG in yad, --button='...:Y' --button='...:X' 
+# if y > x... --field='Capture:CB' won't print until atleast a text field's been
+# modified.
+
+#pth="`mktemp --tmpdir="$pth" -u XXXXX``date +%m_%d_%y_%H:%M:%S`"
+pth="$def_dir/`date +%m_%d_%y_%H:%M:%S`"
+
+out=`yad $def_yad --width=512 --form --field='Save as:SFL' "$pth" --field='Format:CB' 'png!jpeg!tiff' --field='Target:CB' 'root!screen!window' --field='Options:CB' 'frame!nobdrs' --field='Add:NUM' "0!-128..127" --field='Delay:NUM' "0!0..60" --button='Ok:2' --button='Close:3'`
+
+[ $? -eq 3 -o $? -eq 252 ] && exit 1
+
+# OMG and i don't remember how this worked...
+fmt=`echo "$out" | sed -nr 's/^.*\|(.+)\|.+\|.+\|.+\|.+\|/\1/p'`
+tgt=`echo "$out" | sed -nr 's/^.*\|.+\|(.+)\|.+\|.+\|.+\|/\1/p'`
+opt=`echo "$out" | sed -nr 's/^.*\|.+\|.+\|(.+)\|.+\|.+\|/\1/p'`
+add=`echo "$out" | sed -nr 's/^.*\|.+\|.+\|.+\|(.+)\..*\|.+\|/\1/p'`
+pth=`echo "$out" | sed -nr 's/^(.*)\|.+\|.+\|.+\|.+\|.+\|/\1/p'`
+dly=`echo "$out" | sed -nr 's/^.*\|.+\|.+\|.+\|.+\|(.+)\..*\|/\1/p'`
+
+[ -z "$pth" ] && pth=$def_dir
+
+pth=`eval echo "$pth"`
+
+if [[ -d "$pth" ]]; then
+    pth="$pth/`date +%m_%d_%y_%H:%M:%S`.$fmt"
+else
+    tmp=`echo "$pth" | sed -nr 's/^.*\.((tiff)|(png)|(jpeg))$/\1/p'`
+    [ -n "$tmp" ] && fmt=$tmp \
+	|| pth="$pth.$fmt"
+    [ "${pth:0:1}" != '/' ] && pth="$def_dir/$pth"
+    [ -f "$pth" ] && yad $def_yad --image=gnome-stop --text="$pth exists as a file in our reality.\nWhat we can do now is to either terminate it or coexist with it.\nWhat say you?" --button='Kill:2' --button='Let Live:3'
+    [ $? -eq 3 -o $? -eq 252 ] && exit 1
+fi
+
+[ ! -d $def_dir ] && mkdir $def_dir
+
+opt="-$opt"
+[ "$tgt" == "window" ] && unset tgt \
+    || tgt="-$tgt"
+
+[[ $dly -ne 0 ]] && sleep $dly
+xwd -add "$add" $tgt $opt | xwdtopnm | pnmto"$fmt" > \
+    "$pth"
+
+feh -F "$pth"
+#feh --geometry 640x480 "$pth"
+exit 0
