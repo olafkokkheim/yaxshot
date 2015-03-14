@@ -7,7 +7,7 @@ To use this script, make sure you've got the above programs installed, then issu
 $ cp yaxshot /usr/local/bin #copy yaxshot to /usr/local/bin or /usr/bin, whichever location you prefer
 
 # Features
-Output screenshots as PNG, TIFF or JPEG
+Output screenshots as PNG, TIFF or JPEG<br>
 Specify a delay (in seconds) before capturing a screenshot
 Automatic filename generation based on the current time and date
 Capture the entire desktop or individual windows
